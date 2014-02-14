@@ -4,16 +4,19 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"net/rpc"
 	"time"
 
 	"github.com/tracyde/aquadyno/probe"
 )
 
 const (
-	USER      = "tracyde"
-	APIKEY    = "1234-1234-1234-1234"
-	UPDATEURL = "http://www.mytankstats.com/api.php?data="
+	USER        = "tracyde"
+	APIKEY      = "1234-1234-1234-1234"
+	UPDATEURL   = "http://www.mytankstats.com/api.php?data="
+	AQSMADDRESS = "127.0.0.1:2191"
 )
 
 type Update struct {
@@ -22,6 +25,8 @@ type Update struct {
 	Date   time.Time
 	Probes *[]probe.Probe
 }
+
+type Empty struct{}
 
 func sendUpdate(u *Update) error {
 	j, err := json.Marshal(u)
@@ -46,12 +51,18 @@ func sendUpdate(u *Update) error {
 	return nil
 }
 
-func gatherProbes() (p *[]probe.Probe, _ error) {
-	p1 := probe.NewThermal("tank1", "aquarium temp", 25.556)
-	p2 := probe.NewThermal("tank1", "ambient temp", 22.197)
+func gatherProbes() (*[]probe.Probe, error) {
+	client, err := rpc.DialHTTP("tcp", AQSMADDRESS)
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
 
-	p = &[]probe.Probe{*p1, *p2}
-	return
+	var reply []probe.Probe
+	err = client.Call("Probes.Gather", Empty{}, &reply)
+	if err != nil {
+		log.Fatal("probes error:", err)
+	}
+	return &reply, nil
 }
 
 func main() {
