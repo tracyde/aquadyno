@@ -1,5 +1,7 @@
+aqcm/aqcm
 aqsm/aqsm
 aqum/aqum
+**/config.json
 **/.*.swp
 tags
 **/tags
