@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/rpc"
 	"time"
@@ -40,7 +41,21 @@ func sendUpdate(u *Update) error {
 	fmt.Printf("base64: %v\n", b64)
 
 	fmt.Printf("Submitting update to website: %v\n", UPDATEURL+b64)
-	resp, err := http.Get(UPDATEURL + b64)
+	// resp, err := http.Get(UPDATEURL + b64)
+	client := http.Client{
+		Transport: &http.Transport{
+			Dial: func(netw, addr string) (net.Conn, error) {
+				deadline := time.Now().Add(20 * time.Second)
+				c, err := net.DialTimeout(netw, addr, 10*time.Second)
+				if err != nil {
+					return nil, err
+				}
+				c.SetDeadline(deadline)
+				return c, nil
+			},
+		},
+	}
+	resp, err := client.Get(UPDATEURL + b64)
 	if err != nil {
 		fmt.Println(err)
 		return err
